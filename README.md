@@ -1,6 +1,6 @@
 # KVM Monitor for HPE Morpheus / VM Essentials, Enterprise, Community
 
-**VMware-style CPU Ready and vCPU scheduling metrics for KVM/HVM hypervisors managed by HPE Morpheus (VM Essentials, Enterprise, Community).**
+**CPU Ready and vCPU scheduling metrics for KVM/HVM hypervisors managed by HPE Morpheus (VM Essentials, Enterprise, Community).**
 
 Morpheus doesn't have a native equivalent of VMware's CPU Ready metric. KVM Monitor fills that gap: it collects per-VM vCPU scheduling delay, CPU utilization, steal, and disk/network I/O directly from KVM hosts via `virsh domstats`, stores it locally in SQLite, and surfaces it across three places in the Morpheus UI — a native **dashboard widget**, a per-host **detail tab**, and an Operations **report** with CSV export.
 
