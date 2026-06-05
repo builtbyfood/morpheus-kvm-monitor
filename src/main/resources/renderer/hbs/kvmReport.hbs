@@ -1,0 +1,116 @@
+<div class="kvm-report">
+  <style>
+    .kvm-report table { width: 100%; border-collapse: collapse; margin-top: 8px; overflow: visible; }
+    .kvm-report th, .kvm-report td { text-align: left; padding: 8px 12px; border-bottom: 1px solid rgba(128,128,128,0.2); overflow: visible; }
+    .kvm-report th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; position: relative; }
+    .kvm-report .summary { margin-bottom: 8px; opacity: 0.75; font-size: 13px; }
+    .kvm-report .legend { font-size: 12px; opacity: 0.55; margin-top: 12px; line-height: 1.5; }
+
+    .kvm-info { position: relative; display: inline-block; margin-left: 4px; cursor: help; }
+    .kvm-info .icon {
+      display: inline-block; width: 14px; height: 14px; line-height: 14px;
+      text-align: center; font-size: 10px; font-weight: 700; font-style: normal;
+      border-radius: 50%; background: rgba(128,128,128,0.3); opacity: 0.7;
+    }
+    .kvm-info:hover .icon { opacity: 1; }
+    .kvm-info .bubble {
+      position: absolute; top: calc(100% + 6px); left: 0;
+      background: #1c2128; color: #e6edf3;
+      padding: 10px 12px; border-radius: 6px;
+      font-size: 12px; font-weight: 400; text-transform: none; letter-spacing: 0;
+      width: 280px; line-height: 1.5;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.45);
+      opacity: 0; visibility: hidden;
+      transition: opacity 0.12s, visibility 0.12s;
+      z-index: 9999; pointer-events: none; text-align: left; white-space: normal;
+    }
+    .kvm-info .bubble::before {
+      content: ''; position: absolute; bottom: 100%; left: 8px;
+      border: 5px solid transparent; border-bottom-color: #1c2128;
+    }
+    .kvm-info .bubble strong { color: #79c0ff; }
+    .kvm-info:hover .bubble { opacity: 1; visibility: visible; }
+  </style>
+
+  {{#each header}}
+    <div class="summary">
+      Window: {{dataMap.windowMinutes}} min · {{dataMap.vmCount}} VM(s) · generated {{dataMap.generatedAt}}
+    </div>
+  {{/each}}
+
+  <table>
+    <thead>
+      <tr>
+        <th>VM</th><th>Host</th><th>vCPUs</th>
+        <th>Avg Ready %
+          <span class="kvm-info"><span class="icon">i</span>
+            <span class="bubble">
+              <strong>CPU Ready %</strong> — time a vCPU was runnable but waiting on the host scheduler. Per vCPU.<br><br>
+              Avg = mean across the window. Max = worst single sample.<br><br>
+              • &lt; 5% healthy · 5–10% watch · &gt; 10% impacting<br><br>
+              High max + low avg = brief spikes. Both high = sustained pressure.
+            </span>
+          </span>
+        </th>
+        <th>Max Ready %</th>
+        <th>Avg Used %
+          <span class="kvm-info"><span class="icon">i</span>
+            <span class="bubble">
+              <strong>CPU Used %</strong> — actual CPU consumed by the VM, per vCPU.<br><br>
+              Read with Ready %: high Used + high Ready = real contention; low Used + high Ready = host oversubscription. Sustained &gt; 85–90% means the VM is CPU-saturated.
+            </span>
+          </span>
+        </th>
+        <th>Max Used %</th>
+        <th>Avg Steal %
+          <span class="kvm-info"><span class="icon">i</span>
+            <span class="bubble">
+              <strong>Steal %</strong> — vCPU was de-scheduled by the host while still wanting to run. Usually 0 on healthy hosts; any reading above 0 means real CPU contention from other host workloads.
+            </span>
+          </span>
+        </th>
+        <th>Max Steal %</th>
+        <th>Avg Disk R/W
+          <span class="kvm-info"><span class="icon">i</span>
+            <span class="bubble">
+              <strong>Disk read / write</strong> — average KB/s per VM, summed across all attached block devices. Computed from cumulative <code>block.N.rd.bytes</code> / <code>block.N.wr.bytes</code> deltas between consecutive samples.<br><br>
+              Format: <em>read / write</em>. Compact units: <code>1.2M</code> = 1.2 MB/s.
+            </span>
+          </span>
+        </th>
+        <th>Max Disk R/W</th>
+        <th>Avg Net R/T
+          <span class="kvm-info"><span class="icon">i</span>
+            <span class="bubble">
+              <strong>Net receive / transmit</strong> — average KB/s per VM, summed across all network interfaces. Computed from cumulative <code>net.N.rx.bytes</code> / <code>net.N.tx.bytes</code> deltas between consecutive samples.<br><br>
+              Format: <em>rx / tx</em>. Compact units: <code>1.2M</code> = 1.2 MB/s.
+            </span>
+          </span>
+        </th>
+        <th>Max Net R/T</th>
+        <th>Samples</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each main}}
+        <tr>
+          <td>{{dataMap.vmName}}</td>
+          <td>{{dataMap.hostName}}</td>
+          <td>{{dataMap.vcpuCount}}</td>
+          <td>{{dataMap.avgReadyPct}}</td>
+          <td>{{dataMap.maxReadyPct}}</td>
+          <td>{{dataMap.avgUsedPct}}</td>
+          <td>{{dataMap.maxUsedPct}}</td>
+          <td>{{dataMap.avgStealPct}}</td>
+          <td>{{dataMap.maxStealPct}}</td>
+          <td>{{dataMap.avgDiskRW}}</td>
+          <td>{{dataMap.maxDiskRW}}</td>
+          <td>{{dataMap.avgNetRT}}</td>
+          <td>{{dataMap.maxNetRT}}</td>
+          <td>{{dataMap.samples}}</td>
+        </tr>
+      {{/each}}
+    </tbody>
+  </table>
+  <p class="legend">All percentages normalized per vCPU. Hover the <strong>i</strong> icons for metric guidance.</p>
+</div>

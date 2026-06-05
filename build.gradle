@@ -1,0 +1,84 @@
+buildscript {
+    repositories {
+        mavenCentral()
+        maven { url "https://plugins.gradle.org/m2/" }
+    }
+    dependencies {
+        // The Morpheus Gradle plugin: packages assets (compiled JSX), scribe
+        // resources, and i18n into the plugin jar so the dashboard resolver can
+        // find them. 1.3.0 matches Morpheus 8.1.x and is compatible with Gradle 8.
+        classpath "com.morpheusdata:morpheus-plugin-gradle:${morphPluginGradleVersion}"
+    }
+}
+
+plugins {
+    id 'groovy'
+    id 'com.github.johnrengelman.shadow' version '7.1.2'
+    id 'com.bertramlabs.asset-pipeline' version '3.4.4'
+}
+
+apply plugin: 'com.morpheusdata.morpheus-plugin-gradle'
+
+group = 'com.morpheusdata'
+version = '2.5.0'
+
+// JDK 17 build, compiled at 1.11 compatibility per Morpheus guidance.
+sourceCompatibility = '11'
+targetCompatibility = '11'
+
+repositories {
+    mavenCentral()
+    maven { url 'https://plugins.gradle.org/m2/' }
+}
+
+sourceSets {
+    main {
+        groovy {
+            srcDirs = ['src/main/groovy']
+        }
+        resources {
+            srcDirs = ['src/main/resources']
+        }
+    }
+}
+
+dependencies {
+    // Provided by the Morpheus runtime — do NOT bundle.
+    compileOnly "com.morpheusdata:morpheus-plugin-api:${morphPluginApiVersion}"
+    compileOnly "org.codehaus.groovy:groovy-all:${groovyVersion}"
+    compileOnly 'io.reactivex.rxjava2:rxjava:2.2.21'
+    compileOnly "org.slf4j:slf4j-api:${slf4jVersion}"
+
+    // Bundled into the fat jar (classloader-isolated).
+    implementation "org.xerial:sqlite-jdbc:${sqliteVersion}"
+
+    // JSX transpiler for the asset pipeline (compiles .jsx -> served .js)
+    assets "com.bertramlabs.plugins:jsx-asset-pipeline:${assetPipelineVersion}"
+}
+
+assets {
+    packagePlugin = false
+    minifyJs = false
+    enableSourceMaps = false
+}
+
+jar {
+    manifest {
+        attributes(
+            'Plugin-Class'                 : 'com.morpheusdata.kvmmonitor.KvmMonitorPlugin',
+            'Plugin-Version'               : version,
+            'Morpheus-Name'                : 'KVM Monitor',
+            'Morpheus-Organization'        : 'Travis DeLuca',
+            'Morpheus-Code'                : 'kvmMonitor',
+            'Morpheus-Description'         : 'Per-VM CPU Ready, utilization, and steal metrics for KVM / HVM hosts, with host oversubscription context.',
+            'Morpheus-Min-Appliance-Version': '8.1.0'
+        )
+    }
+}
+
+shadowJar {
+    archiveClassifier.set('all')
+    mergeServiceFiles()
+}
+
+tasks.assemble.dependsOn tasks.shadowJar

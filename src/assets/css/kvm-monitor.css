@@ -1,0 +1,54 @@
+.kvm-monitor { background: transparent; color: inherit; }
+.kvm-wrap { max-width: 1100px; margin: 0 auto; padding: 16px; }
+.kvm-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.kvm-head h1 { font-size: 18px; margin: 0; font-weight: 600; }
+.kvm-actions { display: flex; align-items: center; gap: 12px; }
+.kvm-status { font-size: 12px; opacity: 0.65; }
+.kvm-btn { padding: 6px 14px; border: 1px solid rgba(128,128,128,0.4); border-radius: 6px;
+           background: transparent; color: inherit; cursor: pointer; font-size: 13px; }
+.kvm-btn:hover { background: rgba(128,128,128,0.12); }
+.kvm-btn:disabled { opacity: 0.5; cursor: default; }
+.kvm-table { width: 100%; border-collapse: collapse; }
+.kvm-table th, .kvm-table td { text-align: left; padding: 9px 12px; border-bottom: 1px solid rgba(128,128,128,0.2); }
+.kvm-table th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+.kvm-bar { display: inline-block; height: 8px; border-radius: 4px; background: #3fb950; vertical-align: middle; margin-right: 6px; }
+.kvm-bar.warn { background: #d29922; }
+.kvm-bar.crit { background: #f85149; }
+.kvm-table th .hint { font-weight: 400; opacity: 0.55; font-size: 10px; text-transform: none; letter-spacing: 0; }
+.kvm-legend { font-size: 12px; opacity: 0.6; margin-top: 14px; line-height: 1.5; }
+
+/* Tooltip bubbles */
+.kvm-table th { position: relative; overflow: visible; }
+.kvm-table { overflow: visible; }
+.kvm-info { position: relative; display: inline-block; margin-left: 4px; cursor: help; }
+.kvm-info .icon {
+  display: inline-block; width: 14px; height: 14px; line-height: 14px;
+  text-align: center; font-size: 10px; font-weight: 700; font-style: normal;
+  border-radius: 50%; background: rgba(128,128,128,0.3); opacity: 0.7;
+}
+.kvm-info:hover .icon { opacity: 1; }
+.kvm-info .bubble {
+  position: absolute; top: calc(100% + 6px); left: 0;
+  background: #1c2128; color: #e6edf3;
+  padding: 10px 12px; border-radius: 6px;
+  font-size: 12px; font-weight: 400; text-transform: none; letter-spacing: 0;
+  width: 280px; line-height: 1.5;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.45);
+  opacity: 0; visibility: hidden;
+  transition: opacity 0.12s, visibility 0.12s;
+  z-index: 9999; pointer-events: none; text-align: left; white-space: normal;
+}
+.kvm-info .bubble::before {
+  content: ''; position: absolute; bottom: 100%; left: 8px;
+  border: 5px solid transparent; border-bottom-color: #1c2128;
+}
+.kvm-info .bubble strong { color: #79c0ff; }
+.kvm-info:hover .bubble { opacity: 1; visibility: visible; }
+.kvm-info--end .bubble { left: auto; right: 0; }
+.kvm-info--end .bubble::before { left: auto; right: 8px; }
+
+/* Related-host-metrics footer */
+.kvm-related { font-size: 12px; margin-top: 8px; padding: 8px 0 0; border-top: 1px dashed rgba(128,128,128,0.2); }
+.kvm-related-label { opacity: 0.6; margin-right: 8px; }
+.kvm-related-item { display: inline-block; margin: 0 2px; }
+.kvm-related .sep { opacity: 0.35; margin: 0 6px; }

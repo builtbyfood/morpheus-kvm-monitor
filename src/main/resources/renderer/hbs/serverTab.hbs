@@ -1,0 +1,194 @@
+<div class="kvm-tab">
+  <style>
+    .kvm-tab { padding: 12px 0; }
+    .kvm-tab table { width: 100%; border-collapse: collapse; overflow: visible; }
+    .kvm-tab th, .kvm-tab td { text-align: left; padding: 8px 12px; border-bottom: 1px solid rgba(128,128,128,0.2); overflow: visible; }
+    .kvm-tab th { font-weight: 600; position: relative; }
+    .kvm-tab .hint { font-weight: 400; opacity: 0.55; font-size: 11px; }
+    .kvm-bar { display: inline-block; height: 8px; border-radius: 4px; background: #3fb950; vertical-align: middle; }
+    .kvm-bar.warn, .kvm-ratio.warn { background: #d29922; color: #d29922; }
+    .kvm-bar.crit, .kvm-ratio.crit { background: #f85149; color: #f85149; }
+    .kvm-host-stats { font-size: 13px; margin: 4px 0 14px; position: relative; }
+    .kvm-host-stats .sep { opacity: 0.4; margin: 0 8px; }
+    .kvm-ratio { background: transparent !important; }
+    .kvm-muted { opacity: 0.6; }
+    .kvm-legend { font-size: 12px; opacity: 0.55; margin-top: 14px; line-height: 1.5; }
+    .kvm-related { font-size: 12px; margin-top: 8px; padding: 8px 0 0; border-top: 1px dashed rgba(128,128,128,0.2); }
+    .kvm-related-label { opacity: 0.6; margin-right: 8px; }
+    .kvm-related-item { display: inline-block; margin: 0 2px; }
+    .kvm-related .sep { opacity: 0.35; margin: 0 6px; }
+    .kvm-related .kvm-val { font-weight: 600; margin: 0 2px; }
+    .kvm-related .kvm-val.warn, .kvm-related .kvm-val .warn { color: #d29922; }
+    .kvm-related .kvm-val.crit, .kvm-related .kvm-val .crit { color: #f85149; }
+    .kvm-related .kvm-na { opacity: 0.5; margin: 0 2px; }
+    .kvm-related-label { opacity: 0.6; margin-right: 8px; }
+    .kvm-related-item { display: inline-block; margin: 0 2px; }
+    .kvm-related .sep { opacity: 0.35; margin: 0 6px; }
+
+    /* Tooltip bubbles */
+    .kvm-info { position: relative; display: inline-block; margin-left: 4px; cursor: help; }
+    .kvm-info .icon {
+      display: inline-block; width: 14px; height: 14px; line-height: 14px;
+      text-align: center; font-size: 10px; font-weight: 700; font-style: normal;
+      border-radius: 50%; background: rgba(128,128,128,0.3); opacity: 0.7;
+    }
+    .kvm-info:hover .icon { opacity: 1; }
+    .kvm-info .bubble {
+      position: absolute; top: calc(100% + 6px); left: 0;
+      background: #1c2128; color: #e6edf3;
+      padding: 10px 12px; border-radius: 6px;
+      font-size: 12px; font-weight: 400; text-transform: none; letter-spacing: 0;
+      width: 280px; line-height: 1.5;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.45);
+      opacity: 0; visibility: hidden;
+      transition: opacity 0.12s, visibility 0.12s;
+      z-index: 9999; pointer-events: none; text-align: left; white-space: normal;
+    }
+    .kvm-info .bubble::before {
+      content: ''; position: absolute; bottom: 100%; left: 8px;
+      border: 5px solid transparent; border-bottom-color: #1c2128;
+    }
+    .kvm-info .bubble strong { color: #79c0ff; }
+    .kvm-info:hover .bubble { opacity: 1; visibility: visible; }
+    .kvm-info--end .bubble { left: auto; right: 0; }
+    .kvm-info--end .bubble::before { left: auto; right: 8px; }
+  </style>
+
+  {{#if allocated}}
+    <div class="kvm-host-stats">
+      <span>Allocated: <strong>{{allocated}}</strong> vCPUs</span>
+      {{#if hostCores}}
+        <span class="sep">·</span>
+        <span>Host: <strong>{{hostCores}}</strong> cores</span>
+        {{#if ratio}}
+          <span class="sep">·</span>
+          <span>Ratio: <strong class="kvm-ratio {{ratioClass}}">{{ratio}}:1</strong>
+            <span class="kvm-info">
+              <span class="icon">i</span>
+              <span class="bubble">
+                <strong>Oversubscription ratio</strong> — total allocated vCPUs across all VMs on this host vs the host's physical cores.<br><br>
+                • ≤ 3:1 — safe<br>
+                • 3–5:1 — watch<br>
+                • &gt; 5:1 — likely to cause CPU Ready time<br><br>
+                The single best predictor of Ready% problems on a host.
+              </span>
+            </span>
+          </span>
+        {{/if}}
+      {{/if}}
+    </div>
+  {{/if}}
+
+  {{#if hasData}}
+    <table>
+      <thead>
+        <tr>
+          <th>VM</th>
+          <th>vCPUs
+            <span class="kvm-info"><span class="icon">i</span>
+              <span class="bubble">
+                <strong>vCPUs</strong> — virtual CPUs assigned to this VM. Each must be placed on a physical core when the VM runs, so higher vCPU counts increase scheduling pressure on the host.
+              </span>
+            </span>
+          </th>
+          <th>CPU Ready % <span class="hint">(per vCPU)</span>
+            <span class="kvm-info"><span class="icon">i</span>
+              <span class="bubble">
+                <strong>CPU Ready %</strong> — time a vCPU was runnable but waiting for the host scheduler to place it on a physical core. Normalized per vCPU.<br><br>
+                • &lt; 5% — healthy<br>
+                • 5–10% — watch<br>
+                • &gt; 10% — performance-impacting<br><br>
+                Caused by host oversubscription. Fix by reducing vCPU allocation, rebalancing VMs across hosts, or adding capacity.
+              </span>
+            </span>
+          </th>
+          <th>CPU Used % <span class="hint">(per vCPU)</span>
+            <span class="kvm-info"><span class="icon">i</span>
+              <span class="bubble">
+                <strong>CPU Used %</strong> — actual CPU consumed by this VM, normalized per vCPU. The %RUN counterpart to Ready %.<br><br>
+                Read together with Ready %:<br>
+                • High Used + high Ready — real contention<br>
+                • Low Used + high Ready — host oversubscription<br>
+                • High Used alone — busy VM, no scheduling pressure<br><br>
+                Sustained &gt; 85–90% means the VM is CPU-saturated and likely needs more vCPUs or workload distribution.
+              </span>
+            </span>
+          </th>
+          <th>Steal %
+            <span class="kvm-info kvm-info--end"><span class="icon">i</span>
+              <span class="bubble">
+                <strong>Steal %</strong> — time a vCPU was de-scheduled by the host while still wanting to run. The host took the pCPU back for something else.<br><br>
+                Usually 0 on healthy hosts. Any reading above 0 means real CPU contention from other workloads on the host. Inside the VM, this is the same metric you'd see as %st in top.
+              </span>
+            </span>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {{#each vms}}
+          <tr>
+            <td>{{vmName}}</td>
+            <td>{{vcpuCount}}</td>
+            <td>
+              <span class="kvm-bar {{readyClass}}" style="width: {{readyBarWidth}}px"></span>
+              {{readyPct}}%
+            </td>
+            <td>{{usedPct}}%</td>
+            <td>{{stealPct}}%</td>
+          </tr>
+        {{/each}}
+      </tbody>
+    </table>
+    <p class="kvm-legend">Hover the <strong>i</strong> icons for guidance on each metric. All percentages normalized per vCPU.</p>
+
+    <div class="kvm-related">
+      <span class="kvm-related-label">Host-side metrics:</span>
+      <span class="kvm-related-item">Load Avg:
+        {{#if hasHostLoad}}<strong class="kvm-val {{loadClass}}">{{load1}} · {{load5}} · {{load15}}</strong>{{else}}<span class="kvm-na">—</span>{{/if}}
+        <span class="kvm-info"><span class="icon">i</span>
+          <span class="bubble">
+            <strong>Load Average</strong> — average number of processes runnable or waiting for a CPU core over the last 1, 5, and 15 minutes.<br><br>
+            Rule of thumb: if the 1-min value is consistently above the host's physical core count, processes are queuing; above 2× cores is heavy contention.<br><br>
+            Check directly with <strong>uptime</strong> or <strong>cat /proc/loadavg</strong>.
+          </span>
+        </span>
+      </span>
+      <span class="sep">·</span>
+      <span class="kvm-related-item">I/O Wait:
+        {{#if hasHostCpu}}<strong class="kvm-val {{iowaitClass}}">{{iowaitPct}}%</strong>{{else}}<span class="kvm-na">—</span>{{/if}}
+        <span class="kvm-info"><span class="icon">i</span>
+          <span class="bubble">
+            <strong>I/O Wait</strong> — percentage of CPU time spent waiting on disk or network operations to complete.<br><br>
+            Sustained &gt; 10–15% usually means storage or network is the bottleneck rather than CPU. The VM can look idle while the workload waits on I/O.<br><br>
+            Check directly with <strong>top</strong> (the %wa column) or <strong>vmstat 1</strong>.
+          </span>
+        </span>
+      </span>
+      <span class="sep">·</span>
+      <span class="kvm-related-item">User / Sys:
+        {{#if hasHostCpu}}<strong class="kvm-val">{{userPct}}% / <span class="{{systemClass}}">{{systemPct}}%</span></strong>{{else}}<span class="kvm-na">—</span>{{/if}}
+        <span class="kvm-info"><span class="icon">i</span>
+          <span class="bubble">
+            <strong>User vs System Time</strong> — split of where CPU cycles go: user-space application code vs kernel-space OS operations.<br><br>
+            Disproportionately high system time (&gt; 20–30%) often points to kernel inefficiency, context-switch storms, or driver-level issues — not the workload itself.<br><br>
+            Check directly with <strong>top</strong> (%us / %sy) or <strong>mpstat -P ALL</strong>.
+          </span>
+        </span>
+      </span>
+      <span class="sep">·</span>
+      <span class="kvm-related-item kvm-related-end">MHz:
+        {{#if hasHostMhz}}<strong class="kvm-val {{cpuMhzClass}}">{{cpuMhz}}{{#if cpuMhzMax}} / {{cpuMhzMax}}{{/if}}</strong>{{else}}<span class="kvm-na">—</span>{{/if}}
+        <span class="kvm-info kvm-info--end"><span class="icon">i</span>
+          <span class="bubble">
+            <strong>CPU Frequency &amp; Throttling</strong> — current operating MHz vs the CPU's max base/turbo clock.<br><br>
+            Sudden frequency drops typically mean thermal throttling — the host is overheating and the kernel slowed the CPU to protect hardware. Performance can degrade sharply with no other obvious signal.<br><br>
+            Check directly with <strong>cpupower frequency-info</strong> or <strong>cat /proc/cpuinfo</strong>.
+          </span>
+        </span>
+      </span>
+    </div>
+  {{else}}
+    <p class="kvm-muted">No CPU scheduling data collected yet for <strong>{{hostName}}</strong>.
+       The collector runs on a background interval; data appears after the first cycle.</p>
+  {{/if}}
+</div>
