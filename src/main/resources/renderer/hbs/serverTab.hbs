@@ -118,7 +118,8 @@
             <span class="kvm-info kvm-info--end"><span class="icon">i</span>
               <span class="bubble">
                 <strong>Steal %</strong> — time a vCPU was de-scheduled by the host while still wanting to run. The host took the pCPU back for something else.<br><br>
-                Usually 0 on healthy hosts. Any reading above 0 means real CPU contention from other workloads on the host. Inside the VM, this is the same metric you'd see as %st in top.
+                Usually 0 on healthy hosts. Any reading above 0 means real CPU contention from other workloads on the host. Inside the VM, this is the same metric you'd see as %st in top.<br><br>
+                <em>Note:</em> Steal % depends on libvirt's <strong>vcpu.N.wait</strong> counter, which not every kernel / QEMU build populates. A constant 0 across every VM on a host can mean the counter is unavailable here rather than zero contention — cross-check with <strong>%st</strong> in <strong>top</strong> inside a guest if you suspect otherwise.
               </span>
             </span>
           </th>

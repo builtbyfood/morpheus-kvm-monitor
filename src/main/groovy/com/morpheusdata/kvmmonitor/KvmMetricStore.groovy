@@ -133,6 +133,45 @@ class KvmMetricStore {
         }
     }
 
+    /**
+     * Release datasource and deregister the SQLite JDBC driver registered by
+     * this plugin's classloader. Necessary on Morpheus 9.0 — Tomcat's
+     * classloader cleanup now warns about plugin-registered drivers lingering
+     * in DriverManager after undeploy.
+     *
+     * SQLiteDataSource isn't a pool — connections are opened/closed per call in
+     * withSql() — so there's no live pool to drain. The real cleanup target is
+     * the JDBC driver registration that DriverManager holds onto.
+     */
+    void close() {
+        synchronized (this) {
+            if (!initialized) return
+            try {
+                dataSource = null
+                initialized = false
+                // Deregister any JDBC driver loaded by THIS plugin's classloader
+                // (i.e. the bundled sqlite-jdbc). Avoid touching drivers from the
+                // parent classloader (e.g. Morpheus' own MySQL driver).
+                ClassLoader myCl = getClass().getClassLoader()
+                java.util.Enumeration<java.sql.Driver> drivers = java.sql.DriverManager.getDrivers()
+                while (drivers.hasMoreElements()) {
+                    java.sql.Driver d = drivers.nextElement()
+                    if (d.getClass().getClassLoader() == myCl) {
+                        try {
+                            java.sql.DriverManager.deregisterDriver(d)
+                            log.debug("Deregistered JDBC driver: ${d.getClass().getName()}")
+                        } catch (Exception e) {
+                            log.debug("Failed to deregister ${d.getClass().getName()}: ${e.message}")
+                        }
+                    }
+                }
+                log.info("KvmMetricStore closed")
+            } catch (Exception e) {
+                log.warn("Error during KvmMetricStore.close(): ${e.message}")
+            }
+        }
+    }
+
     // ── Writes ────────────────────────────────────────────────────────────────
 
     /**

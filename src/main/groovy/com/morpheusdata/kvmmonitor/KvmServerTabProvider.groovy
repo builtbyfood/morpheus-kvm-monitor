@@ -45,8 +45,15 @@ class KvmServerTabProvider extends AbstractServerTabProvider {
             long totalAllocated = 0L
             List<Map> vms = store.latestReadyByVm(server?.id).collect { Map vm ->
                 double ready = (vm.readyPct ?: 0) as double
+                double used  = (vm.usedPct  ?: 0) as double
+                double steal = (vm.stealPct ?: 0) as double
                 vm.readyClass    = ready >= 10 ? 'crit' : (ready >= 5 ? 'warn' : '')
                 vm.readyBarWidth = (int) Math.min(Math.round(ready * 4), 120)
+                // Force 2-decimal display so small but non-zero values
+                // (e.g. 0.01%) are distinguishable from true zero.
+                vm.readyPct = String.format('%.2f', ready)
+                vm.usedPct  = String.format('%.2f', used)
+                vm.stealPct = String.format('%.2f', steal)
                 totalAllocated  += (vm.vcpuCount ?: 0) as long
                 return vm
             }

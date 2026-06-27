@@ -1,0 +1,97 @@
+# Changelog
+
+All notable changes to this project are documented here. The format is based on
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
+adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+---
+
+## [2.6.0] — 2025-06
+
+The Morpheus 9.0 release. KVM Monitor loads cleanly on 9.0 + OpenJDK 25 + the
+new minimal-JRE classloader, but the upgrade exposed two issues that this
+release addresses.
+
+### Added
+
+- **Opt-in dashboard widget toggle.** A new plugin setting,
+  **Show Dashboard Widget**, controls whether the dashboard providers
+  (`KvmMonitorDashboardProvider` and `KvmMonitorDashboardItemProvider`) are
+  registered with Morpheus on plugin start.
+  - **Default: OFF.** During Morpheus 9.0 testing we hit a dashboard 404
+    reproduction that was triggered by specific cluster-creation events;
+    manual plugin removal plus an appliance reboot recovered it. Until that
+    is root-caused upstream, the safer default for new installs is to leave
+    the dashboard widget off and rely on the host detail tab + Operations
+    report, both of which continue to register unconditionally.
+  - **To enable:** Administration → Integrations → Plugins → KVM Monitor
+    (edit), check **Show Dashboard Widget**, save, and **restart the plugin**.
+    Settings are read only during `initialize()`.
+
+### Fixed
+
+- **`kvm-monitor-collector` thread leak on plugin teardown** (Morpheus 9.0's
+  Tomcat now logs a `clearReferencesThreads` warning for it). The collector
+  now has a proper `shutdown()` sequence — graceful `awaitTermination(5s)`,
+  forced `shutdownNow()` on timeout, with timing logged. `KvmMetricStore`
+  gains a `close()` that releases the datasource reference and deregisters
+  the bundled SQLite JDBC driver registered by this plugin's classloader
+  (leaving Morpheus's own MySQL driver untouched). `KvmMonitorPlugin.onDestroy()`
+  now calls both in sequence with timing.
+
+### Changed
+
+- `KvmCollectorService.stop()` is now a thin alias for `shutdown()`, kept
+  for back-compat with any external callers.
+
+### Known issues — Morpheus 9.0
+
+- **CPU Ready % and Steal % may report 0.0** on some hosts after upgrading
+  to 9.0 while CPU Used % continues to populate correctly. Diagnosis is
+  open; we have not yet determined whether this is a collection-path
+  regression (libvirt no longer emitting `vcpu.N.delay` / `vcpu.N.wait` in
+  `domstats` output for affected hosts) or a display-path issue in the
+  store's delta math. If you see this, please file an issue with the output
+  of the diagnostic inspector against your `kvm-monitor.db`.
+- **Recurring `MissingMethodException` on `com.morpheus.compute.KvmComputeUtility._()`**
+  in `morpheus-ui.log` is **not** a KVM Monitor bug — it is an upstream
+  HPE Morpheus issue triggered when a storage pool has a broken mount
+  (e.g. an I/O error on a `/mnt/...` path the compute service tries to
+  enumerate). File with HPE separately if you encounter it.
+
+### Migration notes — upgrading from 2.5.0 with the dashboard already installed
+
+The new toggle gates whether the dashboard providers *register* on plugin
+load. If you previously had the widget installed under
+Administration → Settings → Dashboards to Display, the rows are already in
+the Morpheus database. After upgrading and leaving the new toggle at its
+default (off), the providers will not re-register, but the existing
+`view_dashboard` and `view_dashboard_item` rows persist until cleaned up.
+
+There is no plugin-side cleanup call in this release (the plugin API
+surface for dashboard removal was not verified). If you want the rows gone,
+remove them at the Morpheus database level:
+
+```sql
+-- Remove the dashboard items, then the dashboard, then the item type.
+DELETE FROM view_dashboard_item
+  WHERE dashboard_id IN
+    (SELECT id FROM view_dashboard WHERE code = 'kvm-monitor-dashboard');
+
+DELETE FROM view_dashboard WHERE code = 'kvm-monitor-dashboard';
+
+DELETE FROM dashboard_item_type WHERE code = 'dashboard-item-kvm-monitor';
+```
+
+Reversible alternative: flip `enabled` to `0` on the matching rows instead
+of deleting them.
+
+---
+
+## [2.5.0] and earlier
+
+See the GitHub Releases page for the per-version history of prior releases,
+covering host detail tab, Operations report, standalone dashboard, disk/net
+I/O, host CPU breakdown, topology fields, and the initial dashboard widget.
+
+[2.6.0]: ../../releases/tag/v2.6.0

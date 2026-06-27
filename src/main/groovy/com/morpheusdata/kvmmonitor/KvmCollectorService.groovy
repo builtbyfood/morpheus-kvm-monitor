@@ -47,7 +47,7 @@ class KvmCollectorService {
     void start(int intervalSeconds = 60, int retentionDays = 30) {
         this.intervalSeconds = Math.max(intervalSeconds, 30)
         this.retentionDays   = retentionDays
-        stop()
+        shutdown()
         store.init()
         scheduler = Executors.newSingleThreadScheduledExecutor({ Runnable r ->
             Thread t = new Thread(r, 'kvm-monitor-collector')
@@ -59,12 +59,34 @@ class KvmCollectorService {
         log.info("KVM collector started — interval=${this.intervalSeconds}s retention=${retentionDays}d")
     }
 
-    void stop() {
-        if (scheduler) {
-            scheduler.shutdownNow()
-            scheduler = null
+    /**
+     * Cleanly shut down the collector. Graceful first (waits up to 5s for an
+     * in-flight cycle to finish), then forced. Necessary on Morpheus 9.0 —
+     * Tomcat's classloader cleanup now flags lingering plugin threads with
+     * 'clearReferencesThreads' warnings if we just interrupt without waiting.
+     */
+    void shutdown() {
+        if (!scheduler) return
+        ScheduledExecutorService s = scheduler
+        scheduler = null
+        long t0 = System.currentTimeMillis()
+        s.shutdown()
+        try {
+            if (!s.awaitTermination(5, TimeUnit.SECONDS)) {
+                s.shutdownNow()
+                if (!s.awaitTermination(2, TimeUnit.SECONDS)) {
+                    log.warn("kvm-monitor-collector did not terminate after forced shutdown")
+                }
+            }
+        } catch (InterruptedException ignored) {
+            s.shutdownNow()
+            Thread.currentThread().interrupt()
         }
+        log.info("KVM collector shut down in ${System.currentTimeMillis() - t0}ms")
     }
+
+    /** Back-compat alias. Existing callers can keep using stop(). */
+    void stop() { shutdown() }
 
     private void safeCollect() {
         try {

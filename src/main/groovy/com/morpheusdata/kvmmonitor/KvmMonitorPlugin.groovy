@@ -67,22 +67,33 @@ class KvmMonitorPlugin extends Plugin {
             (cfg.retentionDays   ?: 30) as int
         )
         log.info("KVM CPU Monitor initialized")
-	
-	// Dashboard widget (item type) — register the SAME way as the other providers.
-	KvmMonitorDashboardItemProvider kvmDashItem =
-                new KvmMonitorDashboardItemProvider(this, morpheus)
-	this.registerProvider(kvmDashItem)
 
-	// The dashboard itself.
-	KvmMonitorDashboardProvider kvmDashboard =
-                new KvmMonitorDashboardProvider(this, morpheus)
-	this.registerProvider(kvmDashboard)
+        // Dashboard widget — opt-in as of v2.6.0. Default OFF because of the
+        // Morpheus 9.0 dashboard 404 reproduction (triggers under specific
+        // cluster events; manual plugin removal + reboot recovers it). Toggle
+        // via plugin settings, then restart the plugin to apply.
+        boolean dashboardEnabled = parseBoolean(cfg.dashboardWidgetEnabled)
+        if (dashboardEnabled) {
+            KvmMonitorDashboardItemProvider kvmDashItem =
+                    new KvmMonitorDashboardItemProvider(this, morpheus)
+            this.registerProvider(kvmDashItem)
+            KvmMonitorDashboardProvider kvmDashboard =
+                    new KvmMonitorDashboardProvider(this, morpheus)
+            this.registerProvider(kvmDashboard)
+            log.info("KVM dashboard widget registered (kvmMonitor.dashboardWidgetEnabled=on)")
+        } else {
+            log.info("KVM dashboard widget NOT registered (kvmMonitor.dashboardWidgetEnabled=off). " +
+                    "Enable via Administration → Integrations → Plugins → KVM Monitor (edit), " +
+                    "then restart the plugin.")
+        }
     }
 
     @Override
     void onDestroy() {
-        try { collector?.stop() } catch (Exception ignored) {}
-        log.info("KVM CPU Monitor destroyed")
+        long t0 = System.currentTimeMillis()
+        try { collector?.shutdown() } catch (Exception e) { log.warn("collector shutdown error: ${e.message}") }
+        try { store?.close() }       catch (Exception e) { log.warn("store close error: ${e.message}") }
+        log.info("KVM CPU Monitor destroyed in ${System.currentTimeMillis() - t0}ms")
     }
 
     Boolean hasCustomRenderer() { return true }
@@ -107,6 +118,11 @@ class KvmMonitorPlugin extends Plugin {
                 fieldName: 'dbPath', fieldLabel: 'SQLite Database Path',
                 inputType: OptionType.InputType.TEXT,
                 defaultValue: KvmMetricStore.DEFAULT_DB_PATH, displayOrder: 2
+            ),
+            new OptionType(
+                name: 'Dashboard Widget Enabled', code: 'kvmMonitor.dashboardWidgetEnabled',
+                fieldName: 'dashboardWidgetEnabled', fieldLabel: 'Show Dashboard Widget',
+                inputType: OptionType.InputType.CHECKBOX, defaultValue: 'off', displayOrder: 3
             )
         ]
     }
@@ -123,5 +139,15 @@ class KvmMonitorPlugin extends Plugin {
 
     private String resolveDbPath() {
         (loadSettings().dbPath ?: KvmMetricStore.DEFAULT_DB_PATH) as String
+    }
+
+    /**
+     * Parse a settings value as a boolean. Morpheus CHECKBOX OptionTypes
+     * round-trip as 'on'/'off' strings; we also accept true/1/yes for safety.
+     */
+    private static boolean parseBoolean(Object v) {
+        if (v == null) return false
+        String s = v.toString().trim().toLowerCase()
+        return s == 'on' || s == 'true' || s == '1' || s == 'yes'
     }
 }

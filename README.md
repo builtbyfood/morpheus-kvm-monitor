@@ -4,7 +4,7 @@
 
 Morpheus doesn't have a native equivalent of VMware's CPU Ready metric. KVM Monitor fills that gap: it collects per-VM vCPU scheduling delay, CPU utilization, steal, and disk/network I/O directly from KVM hosts via `virsh domstats`, stores it locally in SQLite, and surfaces it across three places in the Morpheus UI — a native **dashboard widget**, a per-host **detail tab**, and an Operations **report** with CSV export.
 
-> **License:** Apache 2.0 &nbsp;•&nbsp; **Morpheus:** 8.1.x &nbsp;•&nbsp; **Language:** Groovy (plugin) + JSX (dashboard widget)
+> **License:** Apache 2.0 &nbsp;•&nbsp; **Morpheus:** 8.1.x / 9.0 &nbsp;•&nbsp; **Language:** Groovy (plugin) + JSX (dashboard widget)
 
 ## Download
 
@@ -40,7 +40,7 @@ You don't need to build anything to use the plugin — the precompiled jar attac
 - **Per-VM metrics** — vCPU count, Ready %, Used %, Steal %, plus disk read/write and network rx/tx I/O.
 - **Per-host overview** — load average, CPU breakdown (user / system / iowait / steal), and MHz utilization ratio.
 - **Three display surfaces:**
-  - **Dashboard widget** — native React widget on the Operations dashboard grid, selectable under Administration → Settings → Dashboards to Display. The widget title links to the full standalone dashboard.
+  - **Dashboard widget** *(opt-in as of v2.6.0 — see [Configuration](#configuration))* — native React widget on the Operations dashboard grid, selectable under Administration → Settings → Dashboards to Display. The widget title links to the full standalone dashboard.
   - **Host detail tab** — KVM scheduling metrics inline on each KVM host's detail page.
   - **Operations report** — historical CPU Ready report with CSV export.
 - **Standalone dashboard** — a full single-page view at `/plugin/kvmMonitor/dashboard` with host cards, the VM table, light/dark theme (OS preference detection + persistence), and a "Collect Now" button.
@@ -54,10 +54,10 @@ You don't need to build anything to use the plugin — the precompiled jar attac
 
 1. Download the latest `morpheus-kvm-monitor-<version>-all.jar` from [Releases](../../releases).
 2. In Morpheus: **Administration → Integrations → Plugins → Add**, and upload the jar.
-3. The plugin registers automatically. To show the dashboard widget, go to **Administration → Settings → Dashboards to Display**, search **KVM Monitor**, add it, and save.
-4. (Optional) Open **Administration → Integrations → Plugins → KVM Monitor (edit)** to set the collection interval, retention, and SQLite path.
+3. The plugin registers automatically. The **host detail tab** and the **Operations report** are available immediately. The **dashboard widget is opt-in** as of v2.6.0 — to enable it, open **Administration → Integrations → Plugins → KVM Monitor (edit)**, check **Show Dashboard Widget**, save, and **restart the plugin** (settings are read only on plugin start). Then add the widget under **Administration → Settings → Dashboards to Display**.
+4. (Optional) On the same plugin edit dialog you can also set the collection interval, retention, and SQLite path.
 
-> **Requirements:** Morpheus 8.1.x, KVM/VM Essentials hosts reachable by the appliance, and `virsh` available on those hosts (the collector uses `virsh list` + `virsh domstats --vcpu`).
+> **Requirements:** Morpheus 8.1.x or 9.0, KVM/VM Essentials hosts reachable by the appliance, and `virsh` available on those hosts (the collector uses `virsh list` + `virsh domstats --vcpu`).
 
 ---
 
@@ -72,6 +72,7 @@ Settings are available on the plugin's edit dialog:
 | Collection Interval (seconds) | 60 | How often the collector samples each KVM host. |
 | Retention (days) | 30 | How long samples are kept in SQLite before pruning. |
 | SQLite Database Path | `/var/opt/morpheus/morpheus-ui/plugins/kvm-monitor.db` | Where metric history is stored. |
+| Show Dashboard Widget | off | Register the dashboard providers on plugin start. Default off as of v2.6.0 (Morpheus 9.0 dashboard caching protection); change requires a plugin restart. See [CHANGELOG.md](CHANGELOG.md) for the full story. |
 
 ---
 
@@ -91,13 +92,24 @@ See [docs/METRICS.md](docs/METRICS.md) for the full explanation of every metric,
 
 ## Building from source
 
-This project ships its own Gradle wrapper, pinned to a known-good Gradle version. **Always build with the wrapper**, not a system Gradle. See [BUILD.md](BUILD.md) for full details (Linux, Windows, and Docker). Quick version:
+This project ships its own Gradle wrapper, pinned to a known-good Gradle version. **Always build with the wrapper**, not a system Gradle (system Gradle 8.8 is incompatible with the bundled morpheus-plugin-gradle).
+
+**Linux / macOS:**
 
 ```bash
 chmod +x ./gradlew
 ./gradlew clean shadowJar
 # output: build/libs/morpheus-kvm-monitor-<version>-all.jar  (use the -all jar)
 ```
+
+**Windows (PowerShell or cmd):**
+
+```cmd
+gradlew.bat clean shadowJar
+:: output: build\libs\morpheus-kvm-monitor-<version>-all.jar  (use the -all jar)
+```
+
+The build requires a JDK on `PATH` (JDK 17 or newer recommended; the plugin itself targets JDK 11 bytecode for Morpheus runtime compatibility). On Windows, ensure `JAVA_HOME` is set to your JDK install (not a JRE).
 
 ---
 
