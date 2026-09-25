@@ -6,6 +6,32 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [2.7.1] — 2026-09
+
+### Fixed
+
+- **Widget reconciliation no longer runs on the collector's first pass.** That
+  pass fires 5 seconds after start. On a plugin upload the dashboard sync runs
+  about 200 ms after startup, so there was ample margin, but during a full
+  appliance boot every plugin loads at once and the sync can take longer than
+  5 seconds. Reconciling to `off` in that window would remove the dashboard
+  providers before the sync wrote its rows, so on a fresh install the rows
+  would never be created — and ticking the box later would register the
+  providers with nothing to render. Reconciliation now starts on the second
+  pass, one full collection interval after start, and the skip is logged at
+  INFO.
+
+### Changed
+
+- **Corrected the stated reason for the widget defaulting to off.** It is off
+  so that upgrading installs see no change in behavior. The Morpheus 9.0
+  dashboard 404 was closed as a non-bug during 2.6.0 testing — deleting the
+  plugin and rebooting the appliance cleared it, and it never recurred — so it
+  is not a reason to keep the widget off. The decision itself is unchanged;
+  only the justification was stale.
+
+---
+
 ## [2.7.0] — 2026-09
 
 The dashboard widget setting now applies without a plugin restart.
@@ -39,9 +65,9 @@ The dashboard widget setting now applies without a plugin restart.
 
 ### Notes
 
-- The default remains **off**. The Morpheus 9.0 dashboard 404 reproduction
-  still argues for opt-in, and keeping the default unchanged means upgrading
-  installs see no behavior change.
+- The default remains **off**, so that upgrading installs see no behavior
+  change. (An earlier draft of this note also cited the Morpheus 9.0 dashboard
+  404; that was closed as a non-bug and is not a reason — see 2.7.1.)
 - Reconciliation reads plugin settings once per collection pass (every 60s by
   default), which adds one `getSettings()` call per interval.
 

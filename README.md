@@ -72,7 +72,7 @@ Settings are available on the plugin's edit dialog:
 | Collection Interval (seconds) | 60 | How often the collector samples each KVM host. |
 | Retention (days) | 30 | How long samples are kept in SQLite before pruning. |
 | SQLite Database Path | `/var/opt/morpheus/morpheus-ui/plugins/kvm-monitor.db` | Where metric history is stored. |
-| Show Dashboard Widget (applies within one collection interval) | off | Show the KVM Monitor widget on the Morpheus dashboard. Default off as of v2.6.0 (Morpheus 9.0 dashboard caching protection). **As of v2.7.0 no plugin restart is needed:** the collector re-reads this setting on every pass and adds or removes the dashboard providers to match, so a change takes effect within one Collection Interval (60s by default) and shows on the next dashboard load. See [CHANGELOG.md](CHANGELOG.md) for the full story. |
+| Show Dashboard Widget (applies within one collection interval) | off | Show the KVM Monitor widget on the Morpheus dashboard. Default off so that upgrading installs see no change in behaviour. **As of v2.7.0 no plugin restart is needed:** the collector re-reads this setting on every pass and adds or removes the dashboard providers to match, so a change takes effect within one Collection Interval (60s by default) and shows on the next dashboard load. See [CHANGELOG.md](CHANGELOG.md) for the full story. |
 
 ---
 

@@ -72,9 +72,10 @@ class KvmMonitorPlugin extends Plugin {
         )
         log.info("KVM CPU Monitor initialized")
 
-        // Dashboard widget — opt-in, default OFF (the Morpheus 9.0 dashboard
-        // 404 reproduction still argues for opt-in: it triggers under specific
-        // cluster events and needs a manual plugin removal + reboot to clear).
+        // Dashboard widget — opt-in, default OFF purely so that upgrading
+        // installs see no change in behaviour. The Morpheus 9.0 dashboard 404
+        // is NOT a reason: that was closed as a non-bug (plugin delete +
+        // appliance reboot cleared it, and it never recurred).
         //
         // v2.7.0: both providers are always registered here so the dashboard
         // sync creates its rows on every startup. The collector then reconciles

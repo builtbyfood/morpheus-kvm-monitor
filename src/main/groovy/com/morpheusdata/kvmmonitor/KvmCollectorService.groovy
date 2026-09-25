@@ -41,6 +41,11 @@ class KvmCollectorService {
      * closure so the collector needs no reference back to the plugin.
      */
     volatile Closure reconcileHook
+    /**
+     * Completed-pass counter, reset by start(). Only the single scheduler
+     * thread writes it, and scheduleWithFixedDelay never overlaps passes.
+     */
+    private volatile long passCount = 0L
     private volatile int intervalSeconds = 60
     private volatile int retentionDays   = 30
 
@@ -53,6 +58,7 @@ class KvmCollectorService {
 
     void start(int intervalSeconds = 60, int retentionDays = 30) {
         this.intervalSeconds = Math.max(intervalSeconds, 30)
+        this.passCount       = 0L
         this.retentionDays   = retentionDays
         shutdown()
         store.init()
@@ -96,11 +102,26 @@ class KvmCollectorService {
     void stop() { shutdown() }
 
     private void safeCollect() {
+        long pass = ++this.passCount
         // Isolated from collection: a reconcile failure must not stop metrics,
         // and a collection failure must not stop the widget from tracking its
         // setting.
+        //
+        // v2.7.1: the first pass fires 5s after start, which during a full
+        // appliance boot can land before the dashboard sync has written its
+        // rows. Reconciling to 'off' at that point would remove the providers
+        // before the sync ran, so on a fresh install the rows would never be
+        // created and later ticking the box would register providers with
+        // nothing to render. Skipping pass 1 puts the earliest removal one full
+        // interval after start.
         try {
-            reconcileHook?.call()
+            if (pass <= 1L) {
+                log.info("KVM dashboard widget: reconciliation skipped on the first collection " +
+                        "pass so the dashboard sync can finish writing its rows; next pass in " +
+                        "${intervalSeconds}s will reconcile.")
+            } else {
+                reconcileHook?.call()
+            }
         } catch (Throwable t) {
             log.warn("KVM dashboard widget reconcile failed: ${t.message}", t)
         }
