@@ -6,6 +6,47 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [2.7.0] — 2026-09
+
+The dashboard widget setting now applies without a plugin restart.
+
+### Added
+
+- **Live dashboard widget toggle.** Verified on Morpheus 9.0.2: Morpheus
+  resolves dashboard providers live from the plugin's `pluginProviders` map,
+  so adding or removing them takes effect on the next dashboard load with no
+  restart. The collector re-reads `dashboardWidgetEnabled` on every collection
+  pass and registers or unregisters `dashboard-item-kvm-monitor` and
+  `kvm-monitor-dashboard` only when the live state differs from the setting.
+  Each change is logged at INFO. A partially-registered state (one of the two
+  present) counts as out of sync in both directions and is corrected.
+- `setDashboardProvidersEnabled(boolean)` and `dashboardProviderPresence()`
+  on `KvmMonitorPlugin`. `Plugin.pluginProviders` is protected, so these
+  bridge methods are the only way to reach it.
+
+### Changed
+
+- **Both dashboard providers are now always registered during
+  `initialize()`**, so the dashboard sync creates its rows on every startup.
+  The setting no longer gates registration at load time; the collector
+  reconciles to the desired state within one interval.
+- **All `pluginProviders` mutations are copy-on-write.** Each change builds a
+  new `LinkedHashMap` and assigns it to the field in one step; the live map is
+  never modified in place. `Plugin.getProviders()` iterates `keySet()` while
+  rendering, so an in-place edit could be observed half-applied.
+- **Setting relabelled** to `Show Dashboard Widget (applies within one
+  collection interval)` (62 characters, within the 255 limit).
+
+### Notes
+
+- The default remains **off**. The Morpheus 9.0 dashboard 404 reproduction
+  still argues for opt-in, and keeping the default unchanged means upgrading
+  installs see no behavior change.
+- Reconciliation reads plugin settings once per collection pass (every 60s by
+  default), which adds one `getSettings()` call per interval.
+
+---
+
 ## [2.6.4] — 2026-09
 
 ### Fixed

@@ -34,6 +34,13 @@ class KvmCollectorService {
     final KvmMetricStore store
 
     private ScheduledExecutorService scheduler
+    /**
+     * v2.7.0: run once per collection pass, before collecting. The plugin
+     * uses it to reconcile the dashboard widget against its setting so a
+     * change applies within one interval without a restart. Kept as a
+     * closure so the collector needs no reference back to the plugin.
+     */
+    volatile Closure reconcileHook
     private volatile int intervalSeconds = 60
     private volatile int retentionDays   = 30
 
@@ -89,6 +96,14 @@ class KvmCollectorService {
     void stop() { shutdown() }
 
     private void safeCollect() {
+        // Isolated from collection: a reconcile failure must not stop metrics,
+        // and a collection failure must not stop the widget from tracking its
+        // setting.
+        try {
+            reconcileHook?.call()
+        } catch (Throwable t) {
+            log.warn("KVM dashboard widget reconcile failed: ${t.message}", t)
+        }
         try {
             collectAll()
             store.prune(retentionDays)
