@@ -206,6 +206,19 @@ release addresses.
   `domstats` output for affected hosts) or a display-path issue in the
   store's delta math. If you see this, please file an issue with the output
   of the diagnostic inspector against your `kvm-monitor.db`.
+
+  **Resolved — not a bug. No issue needs filing.** Investigated after 2.6.0
+  and closed on both counts:
+
+  - **Ready %** was correct all along. Lightly loaded VMs genuinely sit
+    around 0.003–0.02%, which rounds to `0.0` at one decimal place. The host
+    tab now formats Ready / Used / Steal to two decimals, so a small non-zero
+    value is distinguishable from a true zero.
+  - **Steal %** is zero because libvirt on the affected hosts does not
+    populate `vcpu.N.wait` in `domstats` output. Note that a constant zero
+    can mean the counter is unavailable rather than that there is no
+    contention — to check for real steal, look at `%st` in `top` from inside
+    a guest.
 - **Recurring `MissingMethodException` on `com.morpheus.compute.KvmComputeUtility._()`**
   in `morpheus-ui.log` is **not** a KVM Monitor bug — it is an upstream
   HPE Morpheus issue triggered when a storage pool has a broken mount
