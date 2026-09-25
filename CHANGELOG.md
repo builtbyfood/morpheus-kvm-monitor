@@ -6,6 +6,28 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [2.6.2] — 2026-09
+
+Settings clarity and packaging correctness. No functional change to
+collection, the host tab, or the report.
+
+### Changed
+
+- **Widget setting relabeled** to `Show Dashboard Widget (restart plugin to
+  apply)`. Plugin settings are read only in `initialize()`, so ticking the
+  box has no effect until the plugin is restarted — the old label gave no
+  hint of that.
+- **Corrected the CHECKBOX comment** on `parseBoolean()`. Morpheus 9.x
+  stores a CHECKBOX OptionType as a JSON Boolean `true`/`false`; the comment
+  claimed it round-trips as `'on'`/`'off'` strings. The parser already
+  accepted both, so behavior is unchanged — only the stated assumption was
+  wrong.
+- **`plugin.properties` now carries the real version** (2.6.2). It had read
+  `1.0.0` since the first commit. The packaged `META-INF/MANIFEST.MF` was
+  always correct, so this is a source-of-truth fix, not a deployment fix.
+
+---
+
 ## [2.6.1] — 2026-09
 
 Diagnostics-only release to pin down the dashboard widget not appearing /

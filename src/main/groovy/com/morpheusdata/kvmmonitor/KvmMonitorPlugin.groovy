@@ -123,7 +123,8 @@ class KvmMonitorPlugin extends Plugin {
             ),
             new OptionType(
                 name: 'Dashboard Widget Enabled', code: 'kvmMonitor.dashboardWidgetEnabled',
-                fieldName: 'dashboardWidgetEnabled', fieldLabel: 'Show Dashboard Widget',
+                fieldName: 'dashboardWidgetEnabled',
+                fieldLabel: 'Show Dashboard Widget (restart plugin to apply)',
                 inputType: OptionType.InputType.CHECKBOX, defaultValue: 'off', displayOrder: 3
             )
         ]
@@ -148,8 +149,11 @@ class KvmMonitorPlugin extends Plugin {
     }
 
     /**
-     * Parse a settings value as a boolean. Morpheus CHECKBOX OptionTypes
-     * round-trip as 'on'/'off' strings; we also accept true/1/yes for safety.
+     * Parse a settings value as a boolean. Morpheus 9.x stores a CHECKBOX
+     * OptionType as a JSON Boolean (true/false), so the value arrives here as
+     * a java.lang.Boolean, not the 'on'/'off' string this once assumed. The
+     * string forms are still accepted for older appliances and for the
+     * 'off' defaultValue declared in getSettings().
      */
     private static boolean parseBoolean(Object v) {
         if (v == null) return false
