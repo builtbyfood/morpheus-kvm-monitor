@@ -73,6 +73,8 @@ class KvmMonitorPlugin extends Plugin {
         // cluster events; manual plugin removal + reboot recovers it). Toggle
         // via plugin settings, then restart the plugin to apply.
         boolean dashboardEnabled = parseBoolean(cfg.dashboardWidgetEnabled)
+        log.info("KVM Monitor settings keys=${cfg.keySet()} dashboardWidgetEnabled(raw)=" +
+                "'${cfg.dashboardWidgetEnabled}' (${cfg.dashboardWidgetEnabled?.getClass()?.simpleName}) -> ${dashboardEnabled}")
         if (dashboardEnabled) {
             KvmMonitorDashboardItemProvider kvmDashItem =
                     new KvmMonitorDashboardItemProvider(this, morpheus)
@@ -132,7 +134,11 @@ class KvmMonitorPlugin extends Plugin {
             String json = morpheus.getSettings(this).blockingGet()
             if (json) return new JsonSlurper().parseText(json) as Map
         } catch (Exception e) {
-            log.debug("Using default settings: ${e.message}")
+            // v2.6.1: was log.debug — a failure here silently forces every
+            // setting to default, including dashboardWidgetEnabled=off, which
+            // hides the widget even when the checkbox is ticked.
+            log.warn("KVM Monitor: plugin settings could not be loaded, using defaults " +
+                    "(dashboard widget will be OFF): ${e.class.simpleName}: ${e.message}")
         }
         return [:]
     }

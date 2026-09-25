@@ -45,13 +45,29 @@ class KvmMonitorWidget extends React.Component {
     }
   }
 
+  // v2.6.1: check the HTTP status and content type before parsing. A 403/404
+  // or a login-redirect HTML page used to surface as an opaque
+  // "SyntaxError: Unexpected token <" instead of the real cause.
+  getJson(url) {
+    return fetch(url, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+      .then(r => {
+        var ct = r.headers.get('content-type') || '';
+        if (!r.ok) throw new Error(url + ' -> HTTP ' + r.status);
+        if (ct.indexOf('json') === -1) throw new Error(url + ' -> non-JSON response (' + (ct || 'no content-type') + ')');
+        return r.json();
+      });
+  }
+
   loadData() {
     Promise.all([
-      fetch('/plugin/kvmMonitor/api/hostStats', { credentials: 'same-origin' }).then(r => r.json()),
-      fetch('/plugin/kvmMonitor/api/vms',       { credentials: 'same-origin' }).then(r => r.json())
+      this.getJson('/plugin/kvmMonitor/api/hostStats'),
+      this.getJson('/plugin/kvmMonitor/api/vms')
     ])
     .then(([hostResp, vmResp]) => this.setData(hostResp, vmResp))
-    .catch(err => this.setState({ loaded: true, error: true, errorMessage: String(err) }));
+    .catch(err => {
+      if (window.console) console.error('[kvm-monitor-widget]', err);
+      this.setState({ loaded: true, error: true, errorMessage: String(err && err.message ? err.message : err) });
+    });
   }
 
   setData(hostResp, vmResp) {

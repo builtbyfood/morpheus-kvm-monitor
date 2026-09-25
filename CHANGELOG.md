@@ -6,6 +6,27 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [2.6.1] — 2026-09
+
+Diagnostics-only release to pin down the dashboard widget not appearing /
+not rendering on Morpheus 9.x. No behavior change when everything is healthy.
+
+### Changed
+
+- **Settings-load failures are now logged at WARN** (previously DEBUG). If
+  `morpheus.getSettings()` fails during `initialize()`, every setting falls
+  back to its default — including **Show Dashboard Widget = off** — so the
+  widget was silently never registered even with the box ticked.
+- **Startup logs the raw widget setting**: the parsed settings keys, the raw
+  `dashboardWidgetEnabled` value and its type, and the resulting on/off
+  decision, alongside the existing registered / NOT registered line.
+- **Widget data fetches check HTTP status and content type** before parsing.
+  A 403, 404, or login-redirect HTML page now shows as e.g.
+  `/plugin/kvmMonitor/api/vms -> HTTP 403` in the widget and browser console,
+  instead of `SyntaxError: Unexpected token <`.
+
+---
+
 ## [2.6.0] — 2025-06
 
 The Morpheus 9.0 release. KVM Monitor loads cleanly on 9.0 + OpenJDK 25 + the
