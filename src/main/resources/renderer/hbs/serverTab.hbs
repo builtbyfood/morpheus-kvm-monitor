@@ -13,6 +13,9 @@
     .kvm-ratio { background: transparent !important; }
     .kvm-muted { opacity: 0.6; }
     .kvm-legend { font-size: 12px; opacity: 0.55; margin-top: 14px; line-height: 1.5; }
+    .kvm-dash-link { margin-top: 14px; font-size: 13px; }
+    .kvm-dash-link a { text-decoration: none; }
+    .kvm-dash-link a::before { content: '97'; margin-right: 6px; opacity: 0.7; }
     .kvm-related { font-size: 12px; margin-top: 8px; padding: 8px 0 0; border-top: 1px dashed rgba(128,128,128,0.2); }
     .kvm-related-label { opacity: 0.6; margin-right: 8px; }
     .kvm-related-item { display: inline-block; margin: 0 2px; }
@@ -192,4 +195,30 @@
     <p class="kvm-muted">No CPU scheduling data collected yet for <strong>{{hostName}}</strong>.
        The collector runs on a background interval; data appears after the first cycle.</p>
   {{/if}}
+  <!-- v2.6.3: the dashboard route requires admin-cm:full, and no provider API
+       exposes the viewer's permissions at render time. So the link ships
+       hidden and is revealed only if a probe of /api/status (same admin-cm
+       permission) comes back OK and JSON. Any error, redirect, non-JSON body,
+       or a CSP-dropped script leaves it hidden — fail closed. -->
+  <div class="kvm-dash-link" id="kvmDashLinkHostTab" style="display:none;">
+    <a href="/plugin/kvmMonitor/dashboard">Open KVM Dashboard</a>
+  </div>
+  <script{{#if kvmNonce}} nonce="{{{kvmNonce}}}"{{/if}}>
+    (function () {
+      var el = document.getElementById('kvmDashLinkHostTab');
+      if (!el) { return; }
+      fetch('/plugin/kvmMonitor/api/status', {
+        credentials: 'same-origin',
+        redirect: 'error',
+        headers: { 'Accept': 'application/json' }
+      }).then(function (r) {
+        var ct = r.headers.get('content-type') || '';
+        if (!r.ok) { return; }
+        if (ct.indexOf('json') === -1) { return; }
+        el.style.display = '';
+      }).catch(function () {
+        /* fail closed: leave the link hidden */
+      });
+    })();
+  </script>
 </div>

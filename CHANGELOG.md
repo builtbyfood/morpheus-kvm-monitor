@@ -6,6 +6,34 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [2.6.3] — 2026-09
+
+Adds an **Open KVM Dashboard** link to the host tab and the Operations
+report, gated by a client-side permission probe.
+
+### Added
+
+- **"Open KVM Dashboard" link** in the KVM Monitor host tab and the KVM
+  Monitor report, pointing at `/plugin/kvmMonitor/dashboard`.
+
+  The dashboard route requires `admin-cm:full`, but plugin API 1.3.3 exposes
+  no viewer permissions at render time: `ReportProvider` receives no `User`,
+  `Account`, or request, and `ServerTabProvider` receives a `User` only in
+  `show()`, never in `renderTemplate()`. Rather than guess, the link is
+  rendered hidden and revealed from the browser: a nonce-tagged inline script
+  fetches `/plugin/kvmMonitor/api/status` — which carries the same
+  `admin-cm:full` permission as the dashboard — with same-origin
+  credentials, and un-hides the link only on an OK response with a JSON
+  content type. Any non-OK status, redirect, non-JSON body, network error, or
+  CSP-dropped script leaves the link hidden. It fails closed.
+
+  The nonce comes from `morpheus.getWebRequest().getNonceToken()`, the only
+  source available to a provider, and is emitted with a triple-stache after
+  being stripped to the base64 charset — handlebars.java escapes `=` to
+  `&#x3D;`, which would corrupt a padded nonce.
+
+---
+
 ## [2.6.2] — 2026-09
 
 Settings clarity and packaging correctness. No functional change to

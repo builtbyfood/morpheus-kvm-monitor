@@ -186,7 +186,31 @@ class KvmReportProvider extends AbstractReportProvider {
     HTMLResponse renderTemplate(ReportResult reportResult,
                                 Map<String, List<ReportResultRow>> reportRowsBySection) {
         ViewModel<Map> model = new ViewModel<>()
-        model.object = reportRowsBySection
+        // kvmReport.hbs iterates 'header' and 'main' at the root of the
+        // context, so the nonce is added alongside them in a copy rather than
+        // nesting the sections under a new key, which would break those refs.
+        Map ctx = new LinkedHashMap(reportRowsBySection ?: [:])
+        ctx.kvmNonce = safeNonce()
+        model.object = ctx
         return getRenderer().renderTemplate('hbs/kvmReport', model)
+    }
+
+    /**
+     * CSP nonce for the inline permission-probe script. ReportProvider hands
+     * renderTemplate no ServletRequest and no User, so
+     * MorpheusWebRequestService.getNonceToken() is the only source available.
+     *
+     * Stripped to the CSP base64 charset because the template emits it with a
+     * triple-stache: handlebars.java escapes '=' to '&#x3D;', which corrupts a
+     * padded base64 nonce. An empty result means the script is dropped by CSP
+     * and the link stays hidden — fail closed.
+     */
+    private String safeNonce() {
+        try {
+            String n = (morpheus?.getWebRequest()?.getNonceToken() ?: '') as String
+            return n.replaceAll(/[^A-Za-z0-9+\/=_-]/, '')
+        } catch (Exception ignored) {
+            return ''
+        }
     }
 }

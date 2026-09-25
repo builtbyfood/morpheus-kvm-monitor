@@ -16,7 +16,8 @@ import groovy.util.logging.Slf4j
  * This is the native integration point from the plugin docs
  * (AbstractServerTabProvider.renderTemplate(ComputeServer)). It renders a
  * server-side table of this host's VMs with their latest Ready%/Steal%, read
- * straight from the SQLite store — no extra JS round-trips or CSP headaches.
+ * straight from the SQLite store. The metrics table needs no JS; the only
+ * script is the v2.6.3 nonce-tagged probe that reveals the dashboard link.
  */
 @Slf4j
 class KvmServerTabProvider extends AbstractServerTabProvider {
@@ -40,7 +41,7 @@ class KvmServerTabProvider extends AbstractServerTabProvider {
     @Override
     HTMLResponse renderTemplate(ComputeServer server) {
         ViewModel<Map> model = new ViewModel<>()
-        Map ctx = [hostName: server?.name, vms: [], hasData: false]
+        Map ctx = [hostName: server?.name, vms: [], hasData: false, kvmNonce: safeNonce()]
         try {
             long totalAllocated = 0L
             List<Map> vms = store.latestReadyByVm(server?.id).collect { Map vm ->
@@ -111,6 +112,26 @@ class KvmServerTabProvider extends AbstractServerTabProvider {
         }
         model.object = ctx
         return getRenderer().renderTemplate('hbs/serverTab', model)
+    }
+
+    /**
+     * CSP nonce for the inline permission-probe script. The tab provider gets
+     * no ServletRequest (renderTemplate takes only a ComputeServer), so the
+     * controller's model.request.getAttribute('js-nonce') route is unavailable
+     * here; MorpheusWebRequestService.getNonceToken() is the only source.
+     *
+     * Stripped to the CSP base64 charset because the template emits it with a
+     * triple-stache: handlebars.java escapes '=' to '&#x3D;', which corrupts a
+     * padded base64 nonce. An empty result means the script is dropped by CSP
+     * and the link stays hidden — fail closed.
+     */
+    private String safeNonce() {
+        try {
+            String n = (morpheus?.getWebRequest()?.getNonceToken() ?: '') as String
+            return n.replaceAll(/[^A-Za-z0-9+\/=_-]/, '')
+        } catch (Exception ignored) {
+            return ''
+        }
     }
 
     /** Defensively read host physical core count across possible field names. */
