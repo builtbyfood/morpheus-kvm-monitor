@@ -15,7 +15,7 @@
     .kvm-legend { font-size: 12px; opacity: 0.55; margin-top: 14px; line-height: 1.5; }
     .kvm-dash-link { margin-top: 14px; font-size: 13px; }
     .kvm-dash-link a { text-decoration: none; }
-    .kvm-dash-link a::before { content: '97'; margin-right: 6px; opacity: 0.7; }
+    .kvm-dash-link .kvm-dash-arrow { margin-right: 6px; opacity: 0.7; }
     .kvm-related { font-size: 12px; margin-top: 8px; padding: 8px 0 0; border-top: 1px dashed rgba(128,128,128,0.2); }
     .kvm-related-label { opacity: 0.6; margin-right: 8px; }
     .kvm-related-item { display: inline-block; margin: 0 2px; }
@@ -201,7 +201,7 @@
        permission) comes back OK and JSON. Any error, redirect, non-JSON body,
        or a CSP-dropped script leaves it hidden — fail closed. -->
   <div class="kvm-dash-link" id="kvmDashLinkHostTab" style="display:none;">
-    <a href="/plugin/kvmMonitor/dashboard">Open KVM Dashboard</a>
+    <a href="/plugin/kvmMonitor/dashboard"><span class="kvm-dash-arrow">&#8599;</span>Open KVM Dashboard</a>
   </div>
   <script{{#if kvmNonce}} nonce="{{{kvmNonce}}}"{{/if}}>
     (function () {

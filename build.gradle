@@ -20,7 +20,7 @@ plugins {
 apply plugin: 'com.morpheusdata.morpheus-plugin-gradle'
 
 group = 'com.morpheusdata'
-version = '2.6.3'
+version = '2.6.4'
 
 // JDK 17 build, compiled at 1.11 compatibility per Morpheus guidance.
 sourceCompatibility = '11'

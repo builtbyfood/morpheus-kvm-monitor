@@ -7,7 +7,7 @@
     .kvm-report .legend { font-size: 12px; opacity: 0.55; margin-top: 12px; line-height: 1.5; }
     .kvm-dash-link { margin-top: 14px; font-size: 13px; }
     .kvm-dash-link a { text-decoration: none; }
-    .kvm-dash-link a::before { content: '97'; margin-right: 6px; opacity: 0.7; }
+    .kvm-dash-link .kvm-dash-arrow { margin-right: 6px; opacity: 0.7; }
 
     .kvm-info { position: relative; display: inline-block; margin-left: 4px; cursor: help; }
     .kvm-info .icon {
@@ -122,7 +122,7 @@
        permission) comes back OK and JSON. Any error, redirect, non-JSON body,
        or a CSP-dropped script leaves it hidden — fail closed. -->
   <div class="kvm-dash-link" id="kvmDashLinkReport" style="display:none;">
-    <a href="/plugin/kvmMonitor/dashboard">Open KVM Dashboard</a>
+    <a href="/plugin/kvmMonitor/dashboard"><span class="kvm-dash-arrow">&#8599;</span>Open KVM Dashboard</a>
   </div>
   <script{{#if kvmNonce}} nonce="{{{kvmNonce}}}"{{/if}}>
     (function () {

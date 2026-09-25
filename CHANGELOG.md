@@ -6,6 +6,21 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [2.6.4] — 2026-09
+
+### Fixed
+
+- **Dashboard link rendered as `□97 Open KVM Dashboard`** on Morpheus
+  9.0.2. The 2.6.3 templates styled the arrow with a CSS escape,
+  `content: '<backslash>2197'`, but the generator that wrote those templates
+  parsed `<backslash>21` as an octal escape and emitted a literal U+0011
+  control character followed by `97`. The glyph now lives in the markup as
+  the HTML entity `&#8599;` inside a `.kvm-dash-arrow` span, which also
+  avoids the fact that HTML entities are not interpreted inside a CSS
+  `content:` property. Affected both the host tab and the report.
+
+---
+
 ## [2.6.3] — 2026-09
 
 Adds an **Open KVM Dashboard** link to the host tab and the Operations
